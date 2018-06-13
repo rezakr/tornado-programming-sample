@@ -1,0 +1,115 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>Feed list</title>
+
+	<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+<!-- Latest compiled and minified CSS -->
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+	<!--[if lt IE 9]>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv.js"></script>
+	<![endif]-->
+</head>
+
+<body>
+
+<div class="container">
+	<div class="row">
+	<h3>Websocket connection</h3>
+	<div class="row">
+		<form id="form1">
+			{% module xsrf_form_html() %}
+			<div>List subscriptions (empty means all)</div>
+			<div>
+				<textarea type="text" id="collection_list" name="collection"></textarea>
+			</div>
+		</form>
+		<div>
+			<button type="submit" form="form1" value="Submit">Submit</button>		
+		</div>
+	</div>
+
+	</div>
+	<div class="message-list row">
+		<div class="col" id="comments-list">
+			<div></div>
+		</div>
+	</div>
+
+</div>
+
+
+<div class="row" id="sample-element" style="display:none;">
+	<div class="col-sm-12 col-md-8">
+		<div class="row">
+			<div class="col-sm-6">
+				<strong>Collection:</strong>  <span class="collection"></span>
+			</div>
+			<div class="col-sm-6">
+				<strong>Document:</strong>  <span class="document"></span>
+			</div>
+			<div class="col-sm-12">
+				<strong>message:</strong>
+				<div class="resultdata"></div>
+			</div>
+		</div>
+	</div>
+</div>
+</body>
+
+<script>
+(function($){
+
+	$(document).ready(function() {
+		let collection_list = []
+		let client = $('#subscribe-button')
+		var ws = new WebSocket('ws://localhost:8888/ws');
+		let parent = $('#comments-list')
+		ws.onmessage = function(e){
+			let new_element = $("#sample-element").clone();
+			// console.log((e.data))
+			let data = JSON.parse(e.data);
+
+			parent.prepend(new_element);
+
+			new_element.removeAttr('id')
+			new_element.find('.collection').html(data.collection)
+			new_element.find('.document').html(data.document)
+			new_element.find('.resultdata').html(
+				JSON.stringify(data['data'], null, 2))
+			new_element.css('display','block');
+
+			// alert(evt.data);
+		}
+		ws.onopen = function(e) {
+			console.log('Client connected...'); 
+			//when the server receives clicked message, do this
+			let clickCount = 0;
+			$( "#subscription-form" ).on( "submit", function( event ) {
+				event.preventDefault();
+				ws.send($( this ).serialize());
+			});
+			$( "#form1" ).submit(function( event ) {
+				event.preventDefault();
+				let collections = $("#collection_list").val().split("\n")
+				let result = {'subscribed_channels': collections} 
+				ws.send(JSON.stringify(result));
+
+			});
+
+			// client.on('click', function(e) {
+			// 	e.preventDefault()
+			// 	console.log("clicked")
+			// 	clickCount++;
+			// 	//send a message to ALL connected clients
+			// 	ws.send('collections', clickCount);
+			// });			
+		}
+	});
+})(jQuery);
+</script>
+
+</html>
